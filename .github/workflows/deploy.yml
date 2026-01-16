@@ -1,0 +1,46 @@
+name: Deploy Mail Service to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repo klonla
+        uses: actions/checkout@v4
+
+      - name: SSH key ayarla
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+
+      - name: EC2 known_hosts ekle
+        run: |
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: EC2’ye bağlan ve deploy et
+        run: |
+          ssh -i ~/.ssh/ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
+
+            if [ ! -d "mail-service" ]; then
+              git clone https://github.com/hvural02/mailPythonProjesiAdy.git mail-service
+            fi
+
+            cd mail-service
+            git pull origin main
+
+            python3 -m venv venv || true
+            source venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt
+
+            pkill -f uvicorn || true
+
+            nohup venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 > mail.log 2>&1 &
+          EOF
