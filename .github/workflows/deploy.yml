@@ -29,7 +29,7 @@ jobs:
             set -e
 
             if [ ! -d "mail-service" ]; then
-              git clone https://github.com/hvural02/mailPythonProjesiAdy.git mail-service
+              git clone https://github.com/hvural02/mailPythonProjesiAdy-.git mail-service
             fi
 
             cd mail-service
